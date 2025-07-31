@@ -1,0 +1,71 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME_GO: ${{ secrets.DOCKERHUB_USERNAME }}/go-app
+  IMAGE_NAME_NODE: ${{ secrets.DOCKERHUB_USERNAME }}/node-app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node.js dependencies
+        working-directory: ./node-app
+        run: npm install
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set version variable
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Go image
+        run: |
+          docker build -t $IMAGE_NAME_GO:$VERSION ./go-app
+          docker tag $IMAGE_NAME_GO:$VERSION $IMAGE_NAME_GO:latest
+          docker push $IMAGE_NAME_GO:$VERSION
+          docker push $IMAGE_NAME_GO:latest
+
+      - name: Build and push Node.js image
+        run: |
+          docker build -t $IMAGE_NAME_NODE:$VERSION ./node-app
+          docker tag $IMAGE_NAME_NODE:$VERSION $IMAGE_NAME_NODE:latest
+          docker push $IMAGE_NAME_NODE:$VERSION
+          docker push $IMAGE_NAME_NODE:latest
