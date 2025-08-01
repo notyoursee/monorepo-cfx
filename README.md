@@ -16,3 +16,10 @@ trigger build image and push into dockerhub (public mode)
 CI/CD pipeline workflow.
 
 change code in local > push code into main > create semantic tag version > wait for buid and push image > docker pull in local > change image in values.yaml > running command helm upgrade if you want change the value
+
+## Deployment Screenshot
+
+![Screenshot](images/goapp.png)
+![Screenshot](images/nodeapp.png)
+![Screenshot](images/manifest.png)
+
